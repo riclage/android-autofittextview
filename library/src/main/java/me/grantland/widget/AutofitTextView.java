@@ -16,6 +16,8 @@ public class AutofitTextView extends TextView implements AutofitHelper.OnTextSiz
 
     private AutofitHelper mHelper;
 
+    private int mMaxWidth = Integer.MAX_VALUE;
+
     public AutofitTextView(Context context) {
         super(context);
         init(context, null, 0);
@@ -34,6 +36,8 @@ public class AutofitTextView extends TextView implements AutofitHelper.OnTextSiz
     private void init(Context context, AttributeSet attrs, int defStyle) {
         mHelper = AutofitHelper.create(this, attrs, defStyle)
                 .addOnTextSizeChangeListener(this);
+
+        mMaxWidth = context.obtainStyledAttributes(attrs, new int[]{android.R.attr.maxWidth}).getDimensionPixelOffset(0, mMaxWidth);
     }
 
     // Getters and Setters
@@ -69,6 +73,17 @@ public class AutofitTextView extends TextView implements AutofitHelper.OnTextSiz
         if (mHelper != null) {
             mHelper.setMaxLines(maxLines);
         }
+    }
+
+    @Override
+    public void setMaxWidth(int maxpixels) {
+        mMaxWidth = maxpixels;
+        super.setMaxWidth(maxpixels);
+    }
+
+    @Override
+    public int getMaxWidth() {
+        return mMaxWidth;
     }
 
     /**
