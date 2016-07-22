@@ -3,6 +3,7 @@ package me.grantland.widget;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
+import android.graphics.Paint;
 import android.os.Build;
 import android.text.Editable;
 import android.text.Layout;
@@ -100,14 +101,16 @@ public class AutofitHelper {
         int wholeWidth = parent != null && view.getLayoutParams().width == ViewGroup.LayoutParams.WRAP_CONTENT ?
                          parent.getWidth() : view.getWidth();
 
-        int maxWidth;
+        int maxWidth = 0;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN) {
             maxWidth = view.getMaxWidth();
         } else if (view instanceof AutofitTextView) {
             //noinspection RedundantCast
             maxWidth = ((AutofitTextView)view).getMaxWidth();
-        } else {
-            //ignore max
+        }
+
+        //Ignore max
+        if (maxWidth == 0) {
             maxWidth = Integer.MAX_VALUE;
         }
 
@@ -138,10 +141,11 @@ public class AutofitHelper {
         paint.set(view.getPaint());
         paint.setTextSize(size);
 
-        if ((maxLines == 1 && paint.measureText(text, 0, text.length()) > targetWidth)
+        float compoundDrawablesWidth = view.getCompoundDrawablePadding() + view.getCompoundPaddingLeft() + view.getCompoundPaddingRight();
+        if ((maxLines == 1 && measureText(paint, text, 0, text.length(), compoundDrawablesWidth) > targetWidth)
                 || getLineCount(text, paint, size, targetWidth, displayMetrics) > maxLines) {
             size = getAutofitTextSize(text, paint, targetWidth, maxLines, low, high, precision,
-                    displayMetrics);
+                    displayMetrics, compoundDrawablesWidth);
         }
 
         if (size < minTextSize) {
@@ -151,12 +155,16 @@ public class AutofitHelper {
         view.setTextSize(TypedValue.COMPLEX_UNIT_PX, size);
     }
 
+    private static float measureText(Paint paint, CharSequence text, int start, int end, float compoundDrawables) {
+        return paint.measureText(text, start, end) + compoundDrawables;
+    }
+
     /**
      * Recursive binary search to find the best size for the text.
      */
     private static float getAutofitTextSize(CharSequence text, TextPaint paint,
             float targetWidth, int maxLines, float low, float high, float precision,
-            DisplayMetrics displayMetrics) {
+            DisplayMetrics displayMetrics, float compoundDrawables) {
         float mid = (low + high) / 2.0f;
         int lineCount = 1;
         StaticLayout layout = null;
@@ -179,16 +187,16 @@ public class AutofitHelper {
                 return low;
             }
             return getAutofitTextSize(text, paint, targetWidth, maxLines, low, mid, precision,
-                    displayMetrics);
+                    displayMetrics, compoundDrawables);
         }
         else if (lineCount < maxLines) {
             return getAutofitTextSize(text, paint, targetWidth, maxLines, mid, high, precision,
-                    displayMetrics);
+                    displayMetrics, compoundDrawables);
         }
         else {
             float maxLineWidth = 0;
             if (maxLines == 1) {
-                maxLineWidth = paint.measureText(text, 0, text.length());
+                maxLineWidth = measureText(paint, text, 0, text.length(), compoundDrawables);
             } else {
                 for (int i = 0; i < lineCount; i++) {
                     if (layout.getLineWidth(i) > maxLineWidth) {
@@ -201,10 +209,10 @@ public class AutofitHelper {
                 return low;
             } else if (maxLineWidth > targetWidth) {
                 return getAutofitTextSize(text, paint, targetWidth, maxLines, low, mid, precision,
-                        displayMetrics);
+                        displayMetrics, compoundDrawables);
             } else if (maxLineWidth < targetWidth) {
                 return getAutofitTextSize(text, paint, targetWidth, maxLines, mid, high, precision,
-                        displayMetrics);
+                        displayMetrics, compoundDrawables);
             } else {
                 return mid;
             }
